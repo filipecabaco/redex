@@ -1,8 +1,8 @@
-defmodule RedisEchoTest do
+defmodule RedexTest do
   use ExUnit.Case
-  doctest RedisEcho
+  doctest Redex
 
   test "greets the world" do
-    assert RedisEcho.hello() == :world
+    assert Redex.hello() == :world
   end
 end

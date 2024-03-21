@@ -1,13 +1,14 @@
-defmodule RedisEcho.MixProject do
+defmodule Redex.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :redis,
+      app: :redex,
       version: "0.1.0",
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      aliases: aliases()
     ]
   end
 
@@ -15,7 +16,7 @@ defmodule RedisEcho.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      mod: {Redis, []}
+      mod: {Redex, []}
     ]
   end
 
@@ -24,7 +25,17 @@ defmodule RedisEcho.MixProject do
     [
       {:redix, "~> 1.1"},
       {:castore, ">= 0.0.0"},
-      {:ecto, "~> 3.11"}
+      {:ecto, "~> 3.11"},
+      {:ecto_sql, "~> 3.10"},
+      {:postgrex, ">= 0.0.0"}
+    ]
+  end
+
+  # Run "mix help aliases" to learn about aliases.
+  defp aliases do
+    [
+      test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
+      setup: ["ecto.create --quiet", "ecto.migrate --quiet"]
     ]
   end
 end

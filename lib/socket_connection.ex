@@ -7,18 +7,20 @@ defmodule SocketConnection do
   end
 
   def init(%{port: port}) do
-    {:ok, socket} =
-      :gen_tcp.listen(port, mode: :binary, packet: :raw, active: false, reuseaddr: true)
-
-    Logger.info("Accepting connections on port #{port}")
-    {:ok, socket} = :gen_tcp.accept(socket)
-
+    opts = [mode: :binary, packet: :raw, active: false, reuseaddr: true]
+    {:ok, socket} = :gen_tcp.listen(port, opts)
     {:ok, %{socket: socket}, {:continue, :accept}}
   end
 
-  def handle_continue(:accept, %{socket: socket} = state) do
-    DynamicSupervisor.start_child(ConnectionSupervisor, {Connection, %{socket: socket}})
+  def handle_continue(:accept, state) do
+    Process.send(self(), :accept, [])
+    {:noreply, state}
+  end
 
-    {:noreply, state, {:continue, :accept}}
+  def handle_info(:accept, %{socket: socket} = state) do
+    {:ok, socket} = :gen_tcp.accept(socket)
+    DynamicSupervisor.start_child(ConnectionSupervisor, {Connection, %{socket: socket}})
+    Process.send(self(), :accept, [])
+    {:noreply, state}
   end
 end

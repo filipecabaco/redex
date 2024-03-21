@@ -1,30 +1,35 @@
 defmodule Connection do
   use GenServer
   require Logger
+  defstruct [:socket, :db]
 
-  def start_link(state) do
-    GenServer.start_link(__MODULE__, state, name: __MODULE__)
+  def start_link(%{socket: socket}) do
+    GenServer.start_link(__MODULE__, %__MODULE__{socket: socket}, name: __MODULE__)
   end
 
   def init(state) do
     {:ok, state, {:continue, :read}}
   end
 
-  def handle_continue(:read, %{socket: socket} = state) do
-    Logger.info("Waiting...")
+  def handle_continue(:read, state) do
+    Process.send(self(), :read, [])
+    {:noreply, state}
+  end
 
+  def handle_info(:read, %{socket: socket} = state) do
     case :gen_tcp.recv(socket, 0) do
       {:ok, packet} ->
-        Logger.info("Received: #{inspect(packet)}")
+        Logger.debug("Received: #{inspect(packet)}")
 
-        {:ok, reply} =
+        {:ok, reply, state} =
           packet
           |> Redix.Protocol.parse()
-          |> MessageHandler.handle()
+          |> MessageHandler.handle(state)
 
         :ok = :gen_tcp.send(socket, reply)
+        Process.send(self(), :read, [])
 
-        {:noreply, state, {:continue, :read}}
+        {:noreply, state}
 
       _ ->
         {:stop, :normal, state}
@@ -33,7 +38,7 @@ defmodule Connection do
 
   def handle_info({:tcp_closed, port}, state) do
     Logger.info("Connection closed: #{inspect(port)}")
-    {:noreply, state}
+    {:stop, :normal, state}
   end
 
   def handle_info(msg, state) do
